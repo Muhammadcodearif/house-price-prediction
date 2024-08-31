@@ -1,0 +1,128 @@
+import pandas as pd 
+import numpy as np 
+import seaborn as sns
+import matplotlib.pyplot as plt 
+from sklearn.datasets import fetch_california_housing
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.linear_model import LinearRegression
+from sklearn.metrics import mean_squared_error
+from sklearn.metrics import mean_absolute_error
+from sklearn.metrics import r2_score
+
+row_data = fetch_california_housing()
+
+housing = pd.DataFrame(row_data.data, columns=row_data.feature_names)
+
+housing['Price'] = row_data.target
+
+housing.head()
+
+housing.tail()
+
+housing.columns
+
+housing.info()
+
+housing.info()
+
+print(row_data.DESCR)
+
+housing.loc[:,['MedInc', 'HouseAge', 'AveRooms', 'AveBedrms', 'Population', 'AveOccup', 'Price']].describe()
+
+housing.isnull().sum()
+
+housing.loc[:,['MedInc', 'HouseAge', 'AveRooms', 'AveBedrms', 'Population', 'AveOccup', 'Price']].corr()
+
+plt.figure(figsize=(15,8))
+sns.heatmap(housing.loc[:,['MedInc', 'HouseAge', 'AveRooms', 'AveBedrms', 'Population', 'AveOccup', 'Price']].corr(), annot=True)
+plt.title('Correlation between all columns')
+plt.show()
+
+# Detecting the outliers in given data set
+fig, ax = plt.subplots(figsize=(15,10))
+sns.boxplot(data= housing, ax=ax)
+plt.show()
+
+housing_no = housing.copy()
+
+# Drop unnecessary columns
+housing_no.drop(columns=['AveBedrms', 'Latitude', 'Longitude'], inplace=True)
+
+# Droping The Outliers from MedInc column
+IQR = housing.MedInc.quantile(0.75) - housing.MedInc.quantile(0.25)
+MedInc_lower = housing.MedInc.quantile(0.25) - 1.5*IQR
+MedInc_upper = housing.MedInc.quantile(0.75) + 1.5*IQR
+housing_no['MedInc'] = housing_no.loc[(housing_no.MedInc > MedInc_lower) & (housing_no.MedInc < MedInc_upper), 'MedInc']
+
+# Droping The Outliers from HouseAge column
+IQR = housing.HouseAge.quantile(0.75) - housing.HouseAge.quantile(0.25)
+HouseAge_lower = housing.HouseAge.quantile(0.25) - 1.5*IQR
+HouseAge_upper = housing.HouseAge.quantile(0.75) + 1.5*IQR
+housing_no['HouseAge'] = housing_no.loc[(housing_no.HouseAge > HouseAge_lower) & (housing_no.HouseAge < HouseAge_upper), 'HouseAge']
+
+# Droping The Outliers from AveRooms column
+IQR = housing.AveRooms.quantile(0.75) - housing.AveRooms.quantile(0.25)
+AveRooms_lower = housing.AveRooms.quantile(0.25) - 1.5*IQR
+AveRooms_upper = housing.AveRooms.quantile(0.75) + 1.5*IQR
+housing_no['AveRooms'] = housing_no.loc[(housing_no.AveRooms > AveRooms_lower) & (housing_no.AveRooms < AveRooms_upper), 'AveRooms']
+
+# Droping The Outliers from Population column
+IQR = housing.Population.quantile(0.75) - housing.Population.quantile(0.25)
+Population_lower = housing.Population.quantile(0.25) - 1.5*IQR
+Population_upper = housing.Population.quantile(0.75) + 1.5*IQR
+housing_no['Population'] = housing_no.loc[(housing_no.Population > Population_lower) & (housing_no.Population < Population_upper), 'Population']
+
+# Droping The Outliers from AveOccup column
+IQR = housing.AveOccup.quantile(0.75) - housing.AveOccup.quantile(0.25)
+AveOccup_lower = housing.AveOccup.quantile(0.25) - 1.5*IQR
+AveOccup_upper = housing.AveOccup.quantile(0.75) + 1.5*IQR
+housing_no['AveOccup'] = housing_no.loc[(housing_no.AveOccup > AveOccup_lower) & (housing_no.AveOccup < AveOccup_upper), 'AveOccup']
+
+housing_no.dropna(inplace=True)
+housing_no.isnull().sum()
+
+fig, ax = plt.subplots(figsize=(15,10))
+sns.boxplot(data= housing_no, ax=ax)
+plt.show()
+
+x = housing_no[['MedInc', 'HouseAge', 'AveRooms', 'Population', 'AveOccup']]
+y = housing_no.Price
+
+#Spliting the Data into train and test
+x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=0.3, random_state=42)
+
+# Normalization of given data point
+scaler = StandardScaler()
+x_train_norm = scaler.fit_transform(x_train)
+
+fig, ax = plt.subplots(figsize=(15,10))
+sns.boxplot(data= x_train_norm, ax=ax)
+plt.show()
+
+x_test_norm = scaler.transform(x_test)
+
+fig, ax = plt.subplots(figsize=(15,10))
+sns.boxplot(data= x_test_norm, ax=ax)
+plt.show()
+
+regression = LinearRegression()
+regression.fit(x_train_norm, y_train)
+
+# showing the coefficient
+print(regression.coef_)
+
+# showing the intercept
+print(regression.intercept_)
+
+reg_pred = regression.predict(x_test_norm)
+reg_pred
+
+residuals = y_test - reg_pred
+sns.displot(residuals, kind='kde')
+plt.show()
+
+print(mean_squared_error(y_test, reg_pred))
+print(mean_absolute_error(y_test, reg_pred))
+print(r2_score(y_test, reg_pred))
+
